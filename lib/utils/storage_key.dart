@@ -21,6 +21,7 @@ abstract final class SettingBoxKey {
       hardwareDecoding = 'hardwareDecoding',
       videoSync = 'videoSync',
       autosync = 'autosync',
+      matchVideoFrameRate = 'matchVideoFrameRate',
       p1080 = 'p1080',
       enableAutoEnter = 'enableAutoEnter',
       enableAutoExit = 'enableAutoExit',

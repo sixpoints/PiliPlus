@@ -36,6 +36,7 @@ import 'package:PiliPlus/pages/video/widgets/header_mixin.dart';
 import 'package:PiliPlus/plugin/pl_player/controller.dart';
 import 'package:PiliPlus/plugin/pl_player/models/data_source.dart';
 import 'package:PiliPlus/plugin/pl_player/models/play_repeat.dart';
+import 'package:PiliPlus/plugin/pl_player/widgets/frame_rate_info.dart';
 import 'package:PiliPlus/services/shutdown_timer_service.dart'
     show shutdownTimerService, ShutdownPanel;
 import 'package:PiliPlus/utils/accounts.dart';
@@ -833,6 +834,7 @@ class HeaderControlState extends State<HeaderControl>
                       onTap: () =>
                           Utils.copyText('VideoTrack\n${state.track.video}'),
                     ),
+                    FrameRateTiles(player: player),
                     ListTile(
                       dense: true,
                       title: const Text("rate"),

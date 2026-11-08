@@ -183,6 +183,16 @@ List<SettingsModel> get videoSettings => [
     getSubtitle: () => '当前：${Pref.videoSync}（此项即mpv的--video-sync）',
     onTap: _showVideoSyncDialog,
   ),
+  if (Platform.isAndroid)
+    const SwitchModel(
+      title: '按视频帧率匹配屏幕刷新率',
+      subtitle: '按片源帧率把屏幕锁到整数倍档位：60fps→60Hz、30fps→30Hz、24fps→24Hz，'
+          '避免 LTPO 屏把 60fps 降到 30Hz、把 30fps 降到 24Hz。'
+          '仅在「屏幕帧率」设为自动时生效，退出播放后恢复',
+      leading: Icon(Icons.autofps_select_outlined),
+      setKey: SettingBoxKey.matchVideoFrameRate,
+      defaultVal: false,
+    ),
   NormalModel(
     title: '硬解模式',
     leading: const Icon(Icons.memory_outlined),

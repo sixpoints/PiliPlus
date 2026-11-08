@@ -276,6 +276,12 @@ abstract final class Pref {
     defaultValue: Platform.isAndroid ? '30' : '0',
   );
 
+  /// 播放时按视频帧率抬高屏幕刷新率（仅 Android，只升不降）
+  static bool get matchVideoFrameRate => _setting.get(
+    SettingBoxKey.matchVideoFrameRate,
+    defaultValue: false,
+  );
+
   static CDNService get defaultCDNService {
     if (_setting.get(SettingBoxKey.CDNService) case final String cdnName) {
       return CDNService.values.byName(cdnName);

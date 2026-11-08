@@ -29,6 +29,7 @@ import 'package:PiliPlus/plugin/pl_player/models/play_status.dart';
 import 'package:PiliPlus/plugin/pl_player/models/video_fit_type.dart';
 import 'package:PiliPlus/plugin/pl_player/utils/danmaku_options.dart';
 import 'package:PiliPlus/plugin/pl_player/utils/fullscreen.dart';
+import 'package:PiliPlus/plugin/pl_player/utils/refresh_rate_matcher.dart';
 import 'package:PiliPlus/services/service_locator.dart';
 import 'package:PiliPlus/utils/accounts.dart';
 import 'package:PiliPlus/utils/android/android_helper.dart';
@@ -1025,6 +1026,39 @@ class PlPlayerController with BlockConfigMixin, AudioNormalizationMixin {
     _updateIOSPip(position);
   }
 
+  double _syncedContentFps = 0;
+
+  void _applyContentFps(double fps) {
+    if (fps <= 1) return;
+    if ((fps - _syncedContentFps).abs() < 0.01) return;
+    _syncedContentFps = fps;
+    if (!Platform.isAndroid) return;
+    RefreshRateMatcher.sync(fps).ignore();
+  }
+
+  /// 把视频内容帧率告知系统的刷新率决策链。
+  ///
+  /// Android 的 `DisplayModeDirector` 会综合「应用偏好 / 内容帧率 / 系统设置」
+  /// 多路投票决定刷新率。应用侧唯一可用的低优先级入口是窗口的
+  /// `preferredDisplayModeId`：这里按内容帧率算出一档整数倍刷新率并钉住，
+  /// 详见 [RefreshRateMatcher]。
+  void _syncContentFrameRate(NativePlayer player) {
+    if (!Platform.isAndroid) return;
+    double fps;
+    try {
+      // 优先用容器声明的帧率（demux-fps），拿不到时退回 mpv 的 container-fps
+      final trackFps = player.state.track.video.fps;
+      if (trackFps != null && trackFps > 1) {
+        fps = trackFps;
+      } else {
+        fps = double.tryParse(player.getProperty('container-fps')) ?? 0;
+      }
+    } catch (_) {
+      return;
+    }
+    _applyContentFps(fps);
+  }
+
   /// 播放事件监听
   void _startListeners(NativePlayer player) {
     assert(_subscriptions == null);
@@ -1037,6 +1071,7 @@ class PlPlayerController with BlockConfigMixin, AudioNormalizationMixin {
           _stopWakeLockTimer();
           _updatePlaybackState();
           WakelockPlus.enable();
+          _syncContentFrameRate(player);
 
           if (_isAutoEnterPip) {
             if (_isCurrVideoPage) {
@@ -1097,6 +1132,11 @@ class PlPlayerController with BlockConfigMixin, AudioNormalizationMixin {
       stream.duration.listen((Duration duration) {
         updateDuration(duration);
         _updateIOSPip();
+      }),
+      /// track-list 可能在 playing 之后才就绪，这里再兜一次
+      stream.track.listen((track) {
+        final fps = track.video.fps;
+        if (fps != null) _applyContentFps(fps);
       }),
       stream.buffer.listen((Duration buffer) {
         buffered.value = buffer.inSeconds;
@@ -1695,6 +1735,7 @@ class PlPlayerController with BlockConfigMixin, AudioNormalizationMixin {
     _statusListeners.clear();
     _stopWakeLockTimer();
     WakelockPlus.disable();
+    RefreshRateMatcher.restore().ignore();
     if (kDebugMode) {
       debugPrint('dispose player');
     }
